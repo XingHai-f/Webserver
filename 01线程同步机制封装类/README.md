@@ -1,4 +1,4 @@
-RAII
+# RAII
 RAII全称是“Resource Acquisition is Initialization”，直译过来是“资源获取即初始化”.
 在构造函数中申请分配资源，在析构函数中释放资源。因为C++的语言机制保证了，当一个对象创建的时候，自动调用构造函数，当对象超出作用域的时候会自动调用析构函数。所以，在RAII的指导下，我们应该使用类来管理资源，将资源和对象的生命周期绑定
 
@@ -9,10 +9,14 @@ RAII的核心思想是将资源或者状态与对象的生命周期绑定，通�
   V，如果有其他进行因为等待SV而挂起，则唤醒；若没有，则将SV值加一
 信号量的取值可以是任何自然数，最常用的，最简单的信号量是二进制信号量，只有0和1两个值.
 
-sem_init函数：用于初始化一个未命名的信号量
+sem_init函数：初始化一个匿名的信号量
+原型：int sem_init(sem_t *sem, int pshared, unsigned int value);
+  sem：指定了要初始化的信号量的地址；pshared：0表示多线程，非0表示多进程；value：指定了信号量的初始值
 sem_destory函数：用于销毁信号量
-sem_wait函数：将以原子操作方式将信号量减一,信号量为0时,sem_wait阻塞
-sem_post函数：以原子操作方式将信号量加一,信号量大于0时,唤醒调用sem_post的线程
+原型：int sem_destroy(sem_t *sem); sem：指定要销毁的匿名信号量的地址
+sem_wait函数：减一操作，如果当前信号的值大于0,继续立即返回；如果当前信号量的值等于0，sem_wait阻塞,直到信号量的值变为大于0。
+原型：int sem_wait(sem_t *sem);
+sem_post函数：用于将信号量的值增加1。如果有任何线程因为信号量值为0，而阻塞在sem_wait或sem_trywait调用上，sem_post会唤醒其中的一个线程，使其继续执行。
 以上，成功返回0，失败返回errno
 
 # locker类 互斥量 
