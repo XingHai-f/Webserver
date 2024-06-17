@@ -8,7 +8,7 @@ RAII的核心思想是将资源或者状态与对象的生命周期绑定，通�
   P，如果SV的值大于0，则将其减一；若SV的值为0，则挂起执行
   V，如果有其他进行因为等待SV而挂起，则唤醒；若没有，则将SV值加一
 信号量的取值可以是任何自然数，最常用的，最简单的信号量是二进制信号量，只有0和1两个值.
-···int sem_init(sem_t *sem, int pshared, unsigned int value);···
+'''int sem_init(sem_t *sem, int pshared, unsigned int value);'''
 sem_init函数：初始化一个匿名的信号量
   sem：指定了要初始化的信号量的地址；pshared：0表示多线程，非0表示多进程；value：指定了信号量的初始值
 sem_destory函数：用于销毁信号量
