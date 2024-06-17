@@ -32,7 +32,7 @@ i  nt sem_post(sem_t *sem);
 
 # 互斥量 
 互斥锁,也成互斥量,可以保护关键代码段,以确保独占式访问.当进入关键代码段,获得互斥锁将其加锁;离开关键代码段,唤醒等待该互斥锁的线程。（通俗解释用于防止多个线程同时访问共享资源。互斥量通过锁和解锁操作来控制对共享资源的访问，确保同一时刻只有一个线程能够访问该资源。）
-## cond类 
+## locker类 
 ```C++
   int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr);
 ```
