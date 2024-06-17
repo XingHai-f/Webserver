@@ -1,12 +1,12 @@
 #ifndef THREADPOOL_H
 #define THREADPOOL_H
 
-#include <list>
-#include <cstdio>
-#include <exception>
-#include <pthread.h>
-#include "../lock/locker.h"
-#include "../CGImysql/sql_connection_pool.h"
+#include <list> // 使用STL中的'std::list'容器管理任务队列。
+#include <cstdio> // 标准C 'I/O' 库，用于输出调试信息。
+#include <exception> // 异常处理相关，用于抛出和捕获异常。
+#include <pthread.h> // POSIX 线程库，包含线程相关的函数和数据结构。
+#include "../lock/locker.h" // 自定义的锁类头文件，用于提供互斥锁和信号量。
+#include "../CGImysql/sql_connection_pool.h" // 自定义的数据库连接池头文件，用于管理数据库连接。
 
 template <typename T>
 class threadpool
