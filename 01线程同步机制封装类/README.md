@@ -11,19 +11,23 @@
 ```C++
   int sem_init(sem_t *sem, int pshared, unsigned int value);
 ```
-sem_init函数：初始化一个匿名的信号量
-sem：指定了要初始化的信号量的地址；pshared：0表示多线程，非0表示多进程；value：指定了信号量的初始值
+* sem_init函数：初始化一个匿名的信号量
+* sem：指定了要初始化的信号量的地址；pshared：0表示多线程，非0表示多进程；value：指定了信号量的初始值
 ```C++
   int sem_destroy(sem_t *sem);
 ```
-sem_destory函数：用于销毁信号量
-sem：指定要销毁的匿名信号量的地址
+* sem_destory函数：用于销毁信号量
+* sem：指定要销毁的匿名信号量的地址
 ```C++
   int sem_wait(sem_t *sem);
 ```
-sem_wait函数：如果信号量的值大于零，则将其值减一并立即返回。如果信号量的值为零，则sem_wait阻塞，直到信号量的值大于零。
-
-sem_post函数：用于将信号量的值增加1。如果有任何线程因为信号量值为0，而阻塞在sem_wait或sem_trywait调用上，sem_post会唤醒其中的一个线程，使其继续执行。
+* sem_wait函数：如果信号量的值大于零，则将其值减一并立即返回。如果信号量的值为零，则sem_wait阻塞，直到信号量的值大于零。
+* sem: 指向要操作的信号量对象的指针。
+```C++
+i  nt sem_post(sem_t *sem);
+```
+* sem_post函数：用于将信号量的值增加1。如果有任何线程因为信号量值为0，而阻塞在sem_wait或sem_trywait调用上，sem_post会唤醒其中的一个线程，使其继续执行。
+* sem: 指向需要发布的信号量对象的指针。
 以上，成功返回0，失败返回errno
 
 # 互斥量 
@@ -32,35 +36,51 @@ sem_post函数：用于将信号量的值增加1。如果有任何线程因为�
 ```C++
   int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr);
 ```
-pthread_mutex_init函数：用于初始化互斥锁
-mutex: 指向需要初始化的互斥锁对象的指针；attr: 指向互斥锁属性对象的指针。如果使用默认属性，可以传递NULL。
+* pthread_mutex_init函数：用于初始化互斥锁
+* mutex: 指向需要初始化的互斥锁对象的指针；attr: 指向互斥锁属性对象的指针。如果使用默认属性，可以传递NULL。
 ```C++
   int pthread_mutex_destroy(pthread_mutex_t *mutex);
 ``` 
-pthread_mutex_destory函数：用于销毁互斥锁。mutex: 指向需要销毁的互斥锁对象的指针
+* pthread_mutex_destory函数：用于销毁互斥锁。
+* mutex: 指向需要销毁的互斥锁对象的指针
 ```C++
   int pthread_mutex_destroy(pthread_mutex_t *mutex);
 ```
-pthread_mutex_lock函数：用于对互斥锁进行加锁操作。互斥锁是一种同步机制，用于防止多个线程同时进入临界区，从而避免数据竞争和不一致性。
-mutex: 指向需要加锁的互斥锁对象的指针。
+* pthread_mutex_lock函数：用于对互斥锁进行加锁操作。互斥锁是一种同步机制，用于防止多个线程同时进入临界区，从而避免数据竞争和不一致性。
+* mutex: 指向需要加锁的互斥锁对象的指针。
 ```C++
   int pthread_mutex_unlock(pthread_mutex_t *mutex);
 ```
-pthread_mutex_unlock函数：用于解锁一个互斥锁（mutex）。当一个线程持有互斥锁并完成临界区中的操作后，需要调用这个函数释放锁，以便其他线程可以获得锁并进入临界区。
-mutex: 指向需要解锁的互斥锁对象的指针。
+* pthread_mutex_unlock函数：用于解锁一个互斥锁（mutex）。当一个线程持有互斥锁并完成临界区中的操作后，需要调用这个函数释放锁，以便其他线程可以获得锁并进入临界区。
+* mutex: 指向需要解锁的互斥锁对象的指针。
 以上，成功返回0，失败返回errno
 
-# cond类 条件变量
+# 条件变量
 条件变量提供了一种线程间的通知机制,当某个共享数据达到某个值时,唤醒等待这个共享数据的线程.
-
-pthread_cond_init函数：用于初始化条件变量
-pthread_cond_destory函数：销毁条件变量
-pthread_cond_broadcast函数：以广播的方式唤醒所有等待目标条件变量的线程
-pthread_cond_wait函数：用于等待目标条件变量.该函数调用时需要传入 mutex参数(加锁的互斥锁) ,函数执行时,先把调用线程放入条件变量的请求队列,然后将互斥锁mutex解锁,当函数成功返回为0时,互斥锁会再次被锁上. 也就是说函数内部会有一次解锁和加锁操作.
-
+##  cond类
+```C++
+  int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
+```
+* pthread_cond_init函数：用于初始化条件变量
+* cond: 指向需要初始化的条件变量对象的指针。attr: 指向条件变量属性对象的指针。如果使用默认属性，可以传递NULL。
+```C++
+int pthread_cond_destroy(pthread_cond_t *cond);
+```
+* pthread_cond_destory函数：销毁条件变量
+* cond: 指向需要销毁的条件变量对象的指针。
+```C++
+int pthread_cond_broadcast(pthread_cond_t *cond);
+```
+* pthread_cond_broadcast函数：用于唤醒所有等待指定条件变量的线程
+* cond: 指向条件变量对象的指针。
+```C++
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+```
+* pthread_cond_wait函数：用于等待目标条件变量.该函数调用时需要传入 mutex参数(加锁的互斥锁) ,函数执行时,先把调用线程放入条件变量的请求队列,然后将互斥锁mutex解锁,当函数成功返回为0时,互斥锁会再次被锁上. 也就是说函数内部会有一次解锁和加锁操作.
+* cond: 指向条件变量对象的指针。mutex: 指向与条件变量关联的互斥锁对象的指针。
 # 功能
 锁机制的功能
-实现多线程同步，通过锁机制，确保任一时刻只能有一个线程能进入关键代码段.
+* 实现多线程同步，通过锁机制，确保任一时刻只能有一个线程能进入关键代码段.
 
 # 封装的功能
 类中主要是Linux下三种锁进行封装，将锁的创建于销毁函数封装在类的构造与析构函数中，实现RAII机制
