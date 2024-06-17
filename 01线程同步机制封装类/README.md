@@ -8,13 +8,19 @@ RAII的核心思想是将资源或者状态与对象的生命周期绑定，通�
 *  P，如果SV的值大于0，则将其减一；若SV的值为0，则挂起执行
 *  V，如果有其他进行因为等待SV而挂起，则唤醒；若没有，则将SV值加一
 信号量的取值可以是任何自然数，最常用的，最简单的信号量是二进制信号量，只有0和1两个值.
-```int sem_init(sem_t *sem, int pshared, unsigned int value);```
+```C++
+  int sem_init(sem_t *sem, int pshared, unsigned int value);
+```
 sem_init函数：初始化一个匿名的信号量
 sem：指定了要初始化的信号量的地址；pshared：0表示多线程，非0表示多进程；value：指定了信号量的初始值
-```int sem_destroy(sem_t *sem);```
+```C++
+  int sem_destroy(sem_t *sem);
+```
 sem_destory函数：用于销毁信号量
 sem：指定要销毁的匿名信号量的地址
-```int sem_wait(sem_t *sem);```
+```C++
+  int sem_wait(sem_t *sem);
+```
 sem_wait函数：如果信号量的值大于零，则将其值减一并立即返回。如果信号量的值为零，则sem_wait阻塞，直到信号量的值大于零。
 
 sem_post函数：用于将信号量的值增加1。如果有任何线程因为信号量值为0，而阻塞在sem_wait或sem_trywait调用上，sem_post会唤醒其中的一个线程，使其继续执行。
@@ -23,15 +29,25 @@ sem_post函数：用于将信号量的值增加1。如果有任何线程因为�
 # locker类 互斥量 
 互斥锁,也成互斥量,可以保护关键代码段,以确保独占式访问.当进入关键代码段,获得互斥锁将其加锁;离开关键代码段,唤醒等待该互斥锁的线程.
 
+```C++
+  int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr);
+```
 pthread_mutex_init函数：用于初始化互斥锁
-原型：int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr);
-  mutex: 指向需要初始化的互斥锁对象的指针；attr: 指向互斥锁属性对象的指针。如果使用默认属性，可以传递NULL。
-pthread_mutex_destory函数：用于销毁互斥锁
-原型：int pthread_mutex_destroy(pthread_mutex_t *mutex); mutex: 指向需要销毁的互斥锁对象的指针
+mutex: 指向需要初始化的互斥锁对象的指针；attr: 指向互斥锁属性对象的指针。如果使用默认属性，可以传递NULL。
+```C++
+  int pthread_mutex_destroy(pthread_mutex_t *mutex);
+``` 
+pthread_mutex_destory函数：用于销毁互斥锁。mutex: 指向需要销毁的互斥锁对象的指针
+```C++
+  int pthread_mutex_destroy(pthread_mutex_t *mutex);
+```
 pthread_mutex_lock函数：用于对互斥锁进行加锁操作。互斥锁是一种同步机制，用于防止多个线程同时进入临界区，从而避免数据竞争和不一致性。
-原型：int pthread_mutex_lock(pthread_mutex_t *mutex); mutex: 指向需要加锁的互斥锁对象的指针。
+mutex: 指向需要加锁的互斥锁对象的指针。
+```C++
+  int pthread_mutex_unlock(pthread_mutex_t *mutex);
+```
 pthread_mutex_unlock函数：用于解锁一个互斥锁（mutex）。当一个线程持有互斥锁并完成临界区中的操作后，需要调用这个函数释放锁，以便其他线程可以获得锁并进入临界区。
-原型：int pthread_mutex_unlock(pthread_mutex_t *mutex);mutex: 指向需要解锁的互斥锁对象的指针。
+mutex: 指向需要解锁的互斥锁对象的指针。
 以上，成功返回0，失败返回errno
 
 # cond类 条件变量
