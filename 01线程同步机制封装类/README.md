@@ -69,6 +69,16 @@ int pthread_cond_destroy(pthread_cond_t *cond);
 * pthread_cond_destory函数：销毁条件变量
 * cond: 指向需要销毁的条件变量对象的指针。
 ```C++
+int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime);
+```
+* pthread_cond_timedwait函数:用于条件变量的函数，它允许线程等待一个特定的时间段，直到条件变量被信号唤醒或时间超时。
+* cond：指向条件变量的指针。mutex：指向互斥锁的指针。条件变量需要与互斥锁配合使用，以避免竞态条件。abstime：指定绝对时间的timespec结构体，表示等待的超时时间。该时间是相对于1970年1月1日00:00:00 UTC 的时间。
+```C++
+int pthread_cond_signal(pthread_cond_t *cond);
+```
+* pthread_cond_signal：用来唤醒一个正在等待条件变量的线程。如果有多个线程在等待同一个条件变量，则pthread_cond_signal会唤醒其中一个线程。
+* cond：指向条件变量的指针。
+```C++
 int pthread_cond_broadcast(pthread_cond_t *cond);
 ```
 * pthread_cond_broadcast函数：用于唤醒所有等待指定条件变量的线程
@@ -78,8 +88,6 @@ int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
 ```
 * pthread_cond_wait函数：用于等待目标条件变量.该函数调用时需要传入 mutex参数(加锁的互斥锁) ,函数执行时,先把调用线程放入条件变量的请求队列,然后将互斥锁mutex解锁,当函数成功返回为0时,互斥锁会再次被锁上. 也就是说函数内部会有一次解锁和加锁操作.
 * cond: 指向条件变量对象的指针。mutex: 指向与条件变量关联的互斥锁对象的指针。
-
-
 
 # 功能
 锁机制的功能
