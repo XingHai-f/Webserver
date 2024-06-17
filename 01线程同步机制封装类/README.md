@@ -5,16 +5,18 @@ RAII全称是“Resource Acquisition is Initialization”，直译过来是“�
 RAII的核心思想是将资源或者状态与对象的生命周期绑定，通过C++的语言机制，实现资源和状态的安全管理,智能指针是RAII最好的例子
 # sem类 信号量
 信号量是一种特殊的变量，它只能取自然数值并且只支持两种操作：等待(P)和信号(V).假设有信号量SV，对其的P、V操作如下：
-  P，如果SV的值大于0，则将其减一；若SV的值为0，则挂起执行
-  V，如果有其他进行因为等待SV而挂起，则唤醒；若没有，则将SV值加一
+*  P，如果SV的值大于0，则将其减一；若SV的值为0，则挂起执行
+*  V，如果有其他进行因为等待SV而挂起，则唤醒；若没有，则将SV值加一
 信号量的取值可以是任何自然数，最常用的，最简单的信号量是二进制信号量，只有0和1两个值.
-`int sem_init(sem_t *sem, int pshared, unsigned int value);`
+```int sem_init(sem_t *sem, int pshared, unsigned int value);```
 sem_init函数：初始化一个匿名的信号量
-  sem：指定了要初始化的信号量的地址；pshared：0表示多线程，非0表示多进程；value：指定了信号量的初始值
+sem：指定了要初始化的信号量的地址；pshared：0表示多线程，非0表示多进程；value：指定了信号量的初始值
+```int sem_destroy(sem_t *sem);```
 sem_destory函数：用于销毁信号量
-原型：int sem_destroy(sem_t *sem); sem：指定要销毁的匿名信号量的地址
+sem：指定要销毁的匿名信号量的地址
+```int sem_wait(sem_t *sem);```
 sem_wait函数：如果信号量的值大于零，则将其值减一并立即返回。如果信号量的值为零，则sem_wait阻塞，直到信号量的值大于零。
-原型：int sem_wait(sem_t *sem);
+
 sem_post函数：用于将信号量的值增加1。如果有任何线程因为信号量值为0，而阻塞在sem_wait或sem_trywait调用上，sem_post会唤醒其中的一个线程，使其继续执行。
 以上，成功返回0，失败返回errno
 
