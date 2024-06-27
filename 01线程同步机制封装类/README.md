@@ -24,7 +24,7 @@
 * sem_wait函数：如果信号量的值大于零，则将其值减一并立即返回。如果信号量的值为零，则sem_wait阻塞，直到信号量的值大于零。
 * sem: 指向要操作的信号量对象的指针。
 ```C++
-i  nt sem_post(sem_t *sem);
+  int sem_post(sem_t *sem);
 ```
 * sem_post函数：用于将信号量的值增加1。如果有任何线程因为信号量值为0，而阻塞在sem_wait或sem_trywait调用上，sem_post会唤醒其中的一个线程，使其继续执行。
 * sem: 指向需要发布的信号量对象的指针。
