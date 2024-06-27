@@ -44,7 +44,7 @@
 * pthread_mutex_destory函数：用于销毁互斥锁。
 * mutex: 指向需要销毁的互斥锁对象的指针
 ```C++
-  int pthread_mutex_destroy(pthread_mutex_t *mutex);
+  int pthread_mutex_lock(pthread_mutex_t *mutex);
 ```
 * pthread_mutex_lock函数：用于对互斥锁进行加锁操作。互斥锁是一种同步机制，用于防止多个线程同时进入临界区，从而避免数据竞争和不一致性。
 * mutex: 指向需要加锁的互斥锁对象的指针。
