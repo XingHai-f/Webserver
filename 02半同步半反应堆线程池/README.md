@@ -9,7 +9,7 @@ int pthread_create (pthread_t *thread_tid,               //返回新生成的线
 ```
 函数原型中的第三个参数，为函数指针，指向处理线程函数的地址。该函数，要求为静态函数。如果处理线程函数为类成员函数时，需要将其设置为静态成员函数。
 
-## this指针
+# this指针
 pthread_create的函数原型中第三个参数的类型为函数指针，指向的线程处理函数参数类型为(void *),若线程函数为类成员函数，则this指针会作为默认的参数被传进函数中，从而和线程函数参数(void*)不能匹配，不能通过编译。
 * 静态成员函数就没有这个问题，里面没有this指针。
 
@@ -81,38 +81,39 @@ threadpool<T>::threadpool( connection_pool *connPool, int thread_number, int max
     }
 }
 ```
-# 向请求队列中添加任务
+## 向请求队列中添加任务
 通过list容器创建请求队列，向队列中添加时，通过互斥锁保证线程安全，添加完成后通过信号量提醒有任务要处理，最后注意线程同步。
 ```C++
 template<typename T>
 bool threadpool<T>::append(T* request)
 {
-    m_queuelocker.lock();
+    m_queuelocker.lock(); // 加锁，保护对请求队列访问
  
     //根据硬件，预先设置请求队列的最大值
     if(m_workqueue.size()>m_max_requests)
     {
-        m_queuelocker.unlock();
+        m_queuelocker.unlock(); // 如果请求队列已满，解锁并返回 false
         return false;
     }
 
     //添加任务
-    m_workqueue.push_back(request);
-    m_queuelocker.unlock();
+    m_workqueue.push_back(request);  // 将请求添加到请求队列末尾
+    m_queuelocker.unlock(); // 解锁请求队列
 
     //信号量提醒有任务要处理
-    m_queuestat.post();
-    return true;
+    m_queuestat.post(); // 唤醒一个等待的线程来处理请求
+    return true; // 返回 true 表示成功添加请求
 }
 ```
-# 线程处理函数
+## 线程处理函数
 内部访问私有成员函数run，完成线程处理要求。
 ```C++
 template<typename T>
-void* threadpool<T>::worker(void* arg){
+void* threadpool<T>::worker(void* arg)
+{
     //将参数强转为线程池类，调用成员方法
-    threadpool* pool=(threadpool*)arg;
-    pool->run();
+    threadpool* pool=(threadpool*)arg; // 将参数转换为线程池类的指针
+    pool->run(); // 调用线程池对象的run()方法来执行任务
     return pool;
 }
 ```
@@ -122,35 +123,29 @@ void* threadpool<T>::worker(void* arg){
 template<typename T>
 void threadpool<T>::run()
 {
-     while(!m_stop)
+     while(!m_stop) // 当线程池未停止时循环执行
      {    
-         //信号量等待
-         m_queuestat.wait();
+        m_queuestat.wait(); // 等待信号量，表示有任务需要处理
+        m_queuelocker.lock(); // 被唤醒后先加互斥锁，保护对请求队列的访问
 
-        //被唤醒后先加互斥锁
-        m_queuelocker.lock();
         if(m_workqueue.empty())
         {
-            m_queuelocker.unlock();
+            m_queuelocker.unlock(); // 如果请求队列为空，解锁并继续循环等待
             continue;
         }
 
-        //从请求队列中取出第一个任务
-        //将任务从请求队列删除
-        T* request=m_workqueue.front();
-        m_workqueue.pop_front();
-        m_queuelocker.unlock();
+        T* request=m_workqueue.front(); // 获取队列头部的请求
+        m_workqueue.pop_front(); // 移除队列头部的请求
+        m_queuelocker.unlock(); // 解锁请求队列
+
         if(!request)
-            continue;
-  
-        //从连接池中取出一个数据库连接
-        request->mysql = m_connPool->GetConnection();
+            continue; // 如果请求为空，跳过当前循环
 
-        //process(模板类中的方法,这里是http类)进行处理
-        request->process();
+        request->mysql = m_connPool->GetConnection();  // 从连接池中取出一个数据库连接
 
-        //将数据库连接放回连接池
-        m_connPool->ReleaseConnection(request->mysql);
+        request->process();   // process(模板类中的方法,这里是http类)进行处理
+
+        m_connPool->ReleaseConnection(request->mysql);  // 将数据库连接放回连接池
     }
 }
 ```
