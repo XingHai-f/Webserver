@@ -105,10 +105,11 @@ void threadpool<T>::run()
         m_queuelocker.unlock();
         if (!request)
             continue;
-
+      
+        // 使用 connectionRAII 类来自动管理数据库连接的获取和释放
         connectionRAII mysqlcon(&request->mysql, m_connPool);
         
-        request->process();
+        request->process(); // 处理请求，调用请求对象的 process() 方法
     }
 }
 #endif
