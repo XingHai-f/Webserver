@@ -13,55 +13,38 @@ int pthread_create (pthread_t *thread_tid,               //返回新生成的线
 pthread_create的函数原型中第三个参数的类型为函数指针，指向的线程处理函数参数类型为(void *),若线程函数为类成员函数，则this指针会作为默认的参数被传进函数中，从而和线程函数参数(void*)不能匹配，不能通过编译。
 * 静态成员函数就没有这个问题，里面没有this指针。
 
-# 线程池分析
+# 线程池
+* 空间换时间,浪费服务器的硬件资源,换取运行效率.
+* 池是一组资源的集合,这组资源在服务器启动之初就被完全创建好并初始化,这称为静态资源。
+* 当服务器进入正式运行阶段,开始处理客户请求的时候,如果它需要相关的资源,可以直接从池中获取,无需动态分配。
+* 当服务器处理完一个客户连接后,可以把相关的资源放回池中,无需执行系统调用释放资源。
 * 线程池的设计模式为半同步/半反应堆，其中反应堆具体为Proactor事件处理模式。
 * 具体的，主线程为异步线程，负责监听文件描述符，接收socket新连接，若当前监听的socket发生了读写事件，然后将任务插入到请求队列。工作线程从请求队列中取出任务，完成读写数据的处理。
 ## 线程池类定义
-具体定义可以看代码。需要注意，线程处理函数和运行函数设置为私有属性。
+线程处理函数和运行函数设置为私有属性。
 ```C++
  template<typename T>
  class threadpool{
      public:
-        //thread_number是线程池中线程的数量
-        //max_requests是请求队列中最多允许的、等待处理的请求的数量
-        //connPool是数据库连接池指针
-        threadpool(connection_pool *connPool, int thread_number = 8, int max_request = 10000);
-        ~threadpool();
- 
-        //像请求队列中插入任务请求
-        bool append(T* request);
+       threadpool(connection_pool *connPool, int thread_number = 8, int max_request = 10000);
+       // connPool是数据库连接池指针，thread_number是线程池中线程的数量，max_requests是请求队列中最多允许的、等待处理的请求的数量
+       ~threadpool();
+
+        bool append(T* request); // 向请求队列中插入任务请求
 
       private:
-        //工作线程运行的函数
-        //它不断从工作队列中取出任务并执行之
-        static void *worker(void *arg);
-
-        void run();
+        static void *worker(void *arg); // 工作线程运行的函数
+        void run(); // 不断从工作队列中取出任务并执行之
 
       private:
-        //线程池中的线程数
-        int m_thread_number;
-
-        //请求队列中允许的最大请求数
-        int m_max_requests;
-
-        //描述线程池的数组，其大小为m_thread_number
-        pthread_t *m_threads;
-
-        //请求队列
-        std::list<T *>m_workqueue;    
-
-        //保护请求队列的互斥锁    
-        locker m_queuelocker;
-
-        //是否有任务需要处理
-        sem m_queuestat;
-
-        //是否结束线程
-        bool m_stop;
-
-        //数据库连接池
-        connection_pool *m_connPool;  
+        int m_thread_number; // 线程池中的线程数
+        int m_max_requests; // 请求队列中允许的最大请求数
+        pthread_t *m_threads; // 描述线程池的数组，其大小为m_thread_number
+        std::list<T *>m_workqueue; // 请求队列
+        locker m_queuelocker; // 保护请求队列的互斥锁
+        sem m_queuestat; // 是否有任务需要处理
+        bool m_stop; // 是否结束线程
+        connection_pool *m_connPool; // 数据库连接池
 };
 ```
 ## 线程池创建与回收
