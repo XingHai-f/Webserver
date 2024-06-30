@@ -44,7 +44,7 @@ pthread_create的函数原型中第三个参数的类型为函数指针，指向
         locker m_queuelocker; // 保护请求队列的互斥锁
         sem m_queuestat; // 是否有任务需要处理
         bool m_stop; // 是否结束线程
-        connection_pool *m_connPool; // 数据库连接池
+        connection_pool *m_connPool; // 数据库连接池指针
 };
 ```
 ## 线程池创建与回收
@@ -52,8 +52,9 @@ pthread_create的函数原型中第三个参数的类型为函数指针，指向
 * 具体的，类对象传递时用this指针，传递给静态函数后，将其转换为线程池类，并调用私有成员函数run。
 ```C++
 template<typename T>
-threadpool<T>::threadpool( connection_pool *connPool, int thread_number, int max_requests) : m_thread_number(thread_number), m_max_requests(max_requests), m_stop(false), m_threads(NULL),m_connPool(connPool){
- 
+threadpool<T>::threadpool( connection_pool *connPool, int thread_number, int max_requests)
+      : m_thread_number(thread_number), m_max_requests(max_requests), m_stop(false), m_threads(NULL),m_connPool(connPool)
+{
     if(thread_number<=0||max_requests<=0)
         throw std::exception();
  
@@ -61,16 +62,19 @@ threadpool<T>::threadpool( connection_pool *connPool, int thread_number, int max
     m_threads=new pthread_t[m_thread_number];
     if(!m_threads)
         throw std::exception();
+
     for(int i=0;i<thread_number;++i)
     {
         //循环创建线程，并将工作线程按要求进行运行
-        if(pthread_create(m_threads+i,NULL,worker,this)!=0){
+        if(pthread_create(m_threads+i,NULL,worker,this)!=0)
+        {
             delete [] m_threads;
             throw std::exception();
         }
 
-        //将线程进行分离后，不用单独对工作线程进行回收
-        if(pthread_detach(m_threads[i])){
+        //将线程进行分离后，不用单独对工作线程进行回收（线程在结束时能够自动释放资源）
+        if(pthread_detach(m_threads[i])) // pthread_detach函数将新创建的线程设置为分离状态
+        {
             delete[] m_threads;
             throw std::exception();
         }
