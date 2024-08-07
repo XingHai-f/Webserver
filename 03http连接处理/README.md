@@ -156,4 +156,50 @@ Content-Type: text/html; charset=UTF-8
 * 空行，消息报头后面的空行是必须的。
 * 响应正文，服务器返回给客户端的文本信息。空行后面的html部分为响应正文。
 
-## HTTP状态码
+# HTTP状态码
+HTTP有5种类型的状态码，具体的：
+* 1xx：指示信息--表示请求已接收，继续处理。
+* 2xx：成功--表示请求正常处理完毕。
+  * 200 OK：客户端请求被正常处理。
+  * 206 Partial content：客户端进行了范围请求。
+* 3xx：重定向--要完成请求必须进行更进一步的操作。
+  * 301 Moved Permanently：永久重定向，该资源已被永久移动到新位置，将来任何对该资源的访问都要使用本响应返回的若干个URI之一。
+  * 302 Found：临时重定向，请求的资源现在临时从不同的URI中获得。
+* 4xx：客户端错误--请求有语法错误，服务器无法处理请求。
+  * 400 Bad Request：请求报文存在语法错误。
+  * 403 Forbidden：请求被服务器拒绝。
+  * 404 Not Found：请求不存在，服务器上找不到请求的资源。
+* 5xx：服务器端错误--服务器处理请求出错。
+  * 500 Internal Server Error：服务器在执行请求时出现错误。
+
+# 有限状态机
+ 有限状态机，是一种抽象的理论模型，它能够把有限个变量描述的状态变化过程，以可构造可验证的方式呈现出来。比如，封闭的有向图。
+ 
+ 有限状态机可以通过if-else,switch-case和函数指针来实现，从软件工程的角度看，主要是为了封装逻辑。
+ 
+ 带有状态转移的有限状态机示例代码。
+```
+STATE_MACHINE(){
+    State cur_State = type_A;
+    while(cur_State != type_C){
+        Package _pack = getNewPackage();
+        switch(){
+            case type_A:
+                process_pkg_state_A(_pack);
+                cur_State = type_B;
+                break;
+            case type_B:
+                process_pkg_state_B(_pack);
+                cur_State = type_C;
+                break;
+        }
+    }
+}
+```
+ 该状态机包含三种状态：type_A，type_B和type_C。其中，type_A是初始状态，type_C是结束状态。
+
+ 状态机的当前状态记录在cur_State变量中，逻辑处理时，状态机先通过getNewPackage获取数据包，然后根据当前状态对数据进行处理，处理完后，状态机通过改变cur_State完成状态转移。
+ 
+ 有限状态机一种逻辑单元内部的一种高效编程方法，在服务器编程中，服务器可以根据不同状态或者消息类型进行相应的处理逻辑，使得程序逻辑清晰易懂。
+
+ 结合 epoll、HTTP 报文格式、HTTP 状态码，以及有限状态机的概念，可以帮助我们设计和实现一个高效的 HTTP 服务器。
