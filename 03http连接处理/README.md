@@ -1,5 +1,10 @@
 # epoll
-epoll涉及的知识较多，这里仅对API和基础知识作介绍
+`epoll`是 Linux 提供的一种高效的 I/O 事件通知机制，使用 epoll 可以在大量文件描述符上高效地监视 I/O 事件。它为管理大量并发连接提供了更高的性能，特别适合于网络服务器和其他需要处理大量并发连接的应用程序。epoll 可以被视为 select 和 poll 的高级替代方案，具有更高的可伸缩性和效率。
+**epoll 工作步骤：**
+1. 创建 epoll 实例：调用 epoll_create()，获得一个 epoll 文件描述符。
+2. 注册事件：使用 epoll_ctl() 注册需要监听的事件（如 EPOLLIN，EPOLLOUT）。
+3. 等待事件：使用 epoll_wait() 等待事件的发生并获取发生事件的文件描述符。
+4. 处理事件：根据事件类型对文件描述符执行相应的操作（如读取或写入数据）。
 ## epoll_create函数
 ```C++
 #include <sys/epoll.h>
@@ -22,8 +27,8 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
 上述event是epoll_event结构体指针类型，表示内核所监听的事件，具体定义如下：
 ```C++
 struct epoll_event {
-__uint32_t events; /* Epoll events */
-epoll_data_t data; /* User data variable */
+ __uint32_t events; /* Epoll events */
+ epoll_data_t data; /* User data variable */
 };
 ```
 * events描述事件类型，其中epoll事件类型有以下几种
@@ -84,3 +89,71 @@ int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
 * EPOLLONESHOT
   * 一个线程读取某个socket上的数据后开始处理数据，在处理过程中该socket上又有新数据可读，此时另一个线程被唤醒读取，此时出现两个线程处理同一个socket
   * 我们期望的是一个socket连接在任一时刻都只被一个线程处理，通过epoll_ctl对该文件描述符注册epolloneshot事件，一个线程处理socket时，其他线程将无法处理，当该线程处理完后，需要通过epoll_ctl重置epolloneshot事件
+ 
+# HTTP报文格式
+HTTP报文分为请求报文和响应报文两种，每种报文必须按照特有格式生成，才能被浏览器端识别。其中，浏览器端向服务器发送的为请求报文，服务器处理后返回给浏览器端的为响应报文。
+
+## 请求报文
+HTTP请求报文由请求行（request line）、请求头部（header）、空行和请求数据四个部分组成。
+其中，请求分为两种，GET和POST，具体的：
+* GET
+```
+GET /562f25980001b1b106000338.jpg HTTP/1.1
+Host:img.mukewang.com
+User-Agent:Mozilla/5.0 (Windows NT 10.0; WOW64)
+AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36
+Accept:image/webp,image/*,*/*;q=0.8
+Referer:http://www.imooc.com/
+Accept-Encoding:gzip, deflate, sdch
+Accept-Language:zh-CN,zh;q=0.8
+空行
+请求数据为空
+```
+* POST
+```
+POST / HTTP1.1
+Host:www.wrox.com
+User-Agent:Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727; .NET CLR 3.0.04506.648; .NET CLR 3.5.21022)
+Content-Type:application/x-www-form-urlencoded
+Content-Length:40
+Connection: Keep-Alive
+空行
+name=Professional%20Ajax&publisher=Wiley
+```
+* 请求行，用来说明请求类型,要访问的资源以及所使用的HTTP版本。
+GET说明请求类型为GET，/562f25980001b1b106000338.jpg(URL)为要访问的资源，该行的最后一部分说明使用的是HTTP1.1版本。
+* 请求头部，紧接着请求行（即第一行）之后的部分，用来说明服务器要使用的附加信息。
+  * HOST，给出请求资源所在服务器的域名。
+  * User-Agent，HTTP客户端程序的信息，该信息由你发出请求使用的浏览器来定义,并且在每个请求中自动发送等。
+  * Accept，说明用户代理可处理的媒体类型。
+  * Accept-Encoding，说明用户代理支持的内容编码。
+  * Accept-Language，说明用户代理能够处理的自然语言集。
+  * Content-Type，说明实现主体的媒体类型。
+  * Content-Length，说明实现主体的大小。
+  * Connection，连接管理，可以是Keep-Alive或close。
+* 空行，请求头部后面的空行是必须的即使第四部分的请求数据为空，也必须有空行。
+* 请求数据也叫主体，可以添加任意的其他数据。
+
+## 响应报文
+HTTP响应也由四个部分组成，分别是：状态行、消息报头、空行和响应正文。
+```
+HTTP/1.1 200 OK
+Date: Fri, 22 May 2009 06:07:21 GMT
+Content-Type: text/html; charset=UTF-8
+空行
+<html>
+  <head></head>
+  <body>
+     <!--body goes here-->
+  </body>
+</html>
+```
+* 状态行，由HTTP协议版本号， 状态码， 状态消息 三部分组成。
+  第一行为状态行，（HTTP/1.1）表明HTTP版本为1.1版本，状态码为200，状态消息为OK。
+
+* 消息报头，用来说明客户端要使用的一些附加信息。
+  第二行和第三行为消息报头，Date:生成响应的日期和时间；Content-Type:指定了MIME类型的HTML(text/html),编码类型是UTF-8。
+* 空行，消息报头后面的空行是必须的。
+* 响应正文，服务器返回给客户端的文本信息。空行后面的html部分为响应正文。
+
+## HTTP状态码
