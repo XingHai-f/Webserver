@@ -1,4 +1,4 @@
-# epoll
+# 01 epoll
 `epoll`是 Linux 提供的一种高效的 I/O 事件通知机制，使用 epoll 可以在大量文件描述符上高效地监视 I/O 事件。它为管理大量并发连接提供了更高的性能，特别适合于网络服务器和其他需要处理大量并发连接的应用程序。epoll 可以被视为 select 和 poll 的高级替代方案，具有更高的可伸缩性和效率。
 **epoll 工作步骤：**
 1. 创建 epoll 实例：调用 epoll_create()，获得一个 epoll 文件描述符。
@@ -27,8 +27,8 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
 上述event是epoll_event结构体指针类型，表示内核所监听的事件，具体定义如下：
 ```C++
 struct epoll_event {
- __uint32_t events; /* Epoll events */
- epoll_data_t data; /* User data variable */
+  __uint32_t events; /* Epoll events */
+  epoll_data_t data; /* User data variable */
 };
 ```
 * events描述事件类型，其中epoll事件类型有以下几种
@@ -46,13 +46,13 @@ struct epoll_event {
 int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
 ```
 该函数用于等待所监控文件描述符上有事件的产生，返回就绪的文件描述符个数
-* events：用来存内核得到事件的集合，
-* maxevents：告之内核这个events有多大，这个maxevents的值不能大于创建epoll_create()时的size，
+* events：用来存内核得到事件的集合；
+* maxevents：告之内核这个events有多大，这个maxevents的值不能大于创建epoll_create()时的size；
 * timeout：是超时时间
   * -1：阻塞
   * 0：立即返回，非阻塞
-  * >0：指定毫秒
-* 返回值：成功返回有多少文件描述符就绪，时间到时返回0，出错返回-1
+  * />0：指定毫秒
+* 返回值：成功返回有多少文件描述符就绪，时间到时返回0，出错返回-1。
 
 ## select/poll/epoll
 * 调用函数
@@ -173,7 +173,7 @@ HTTP有5种类型的状态码，具体的：
   * 500 Internal Server Error：服务器在执行请求时出现错误。
 
 # 有限状态机
- 有限状态机，是一种抽象的理论模型，它能够把有限个变量描述的状态变化过程，以可构造可验证的方式呈现出来。比如，封闭的有向图。
+ 有限状态机，是一种抽象的理论模型，它能够把有限个变量描述的状态变化过程，可以构造可验证的方式呈现出来。比如，封闭的有向图。
  
  有限状态机可以通过if-else,switch-case和函数指针来实现，从软件工程的角度看，主要是为了封装逻辑。
  
@@ -293,3 +293,206 @@ while (!stop_server)
     ......
 }
 ```
+# 02 状态机和HTTP报文解析
+## 流程图与状态机
+从状态机负责读取报文的一行，主状态机负责对该行数据进行解析，主状态机内部调用从状态机，从状态机驱动主状态机。
+### 主状态机
+三种状态，标识解析位置。
+* CHECK_STATE_REQUESTLINE，解析请求行
+* CHECK_STATE_HEADER，解析请求头
+* CHECK_STATE_CONTENT，解析消息体，仅用于解析POST请求
+### 从状态机
+三种状态，标识解析一行的读取状态。
+* LINE_OK，完整读取一行
+* LINE_BAD，报文语法有误
+* LINE_OPEN，读取的行不完整
+## 代码分析-http报文解析
+ 上篇中介绍了服务器接收http请求的流程与细节，简单来讲，浏览器端发出http连接请求，服务器端主线程创建http对象接收请求并将所有数据读入对应buffer，将该对象插入任务队列后，工作线程从任务队列中取出一个任务进行处理。
+
+ 各子线程通过process函数对任务进行处理，调用process_read函数和process_write函数分别完成报文解析与报文响应两个任务。
+ ```C++
+void http_conn::process()
+{
+    HTTP_CODE read_ret=process_read();
+
+    //NO_REQUEST，表示请求不完整，需要继续接收请求数据
+    if(read_ret==NO_REQUEST)
+    {
+        //注册并监听读事件
+        modfd(m_epollfd,m_sockfd,EPOLLIN);
+        return;
+    }
+
+    //调用process_write完成报文响应
+    bool write_ret=process_write(read_ret);
+    if(!write_ret)
+    {
+        close_conn();
+    }
+    //注册并监听写事件
+    modfd(m_epollfd,m_sockfd,EPOLLOUT);
+}
+```
+本篇将对报文解析的流程和process_read函数细节进行详细介绍。
+### HTTP_CODE含义
+表示HTTP请求的处理结果，在头文件中初始化了八种情形，在报文解析时只涉及到四种。
+* NO_REQUEST
+  * 请求不完整，需要继续读取请求报文数据
+* GET_REQUEST
+  * 获得了完整的HTTP请求
+* BAD_REQUEST
+  * HTTP请求报文有语法错误
+* INTERNAL_ERROR
+  * 服务器内部错误，该结果在主状态机逻辑switch的default下，一般不会触发
+### 解析报文整体流程
+process_read通过while循环，将主从状态机进行封装，对报文的每一行进行循环处理。
+* 判断条件
+  * 主状态机转移到CHECK_STATE_CONTENT，该条件涉及解析消息体
+  * 从状态机转移到LINE_OK，该条件涉及解析请求行和请求头部
+  * 两者为或关系，当条件为真则继续循环，否则退出
+* 循环体
+  * 从状态机读取数据
+  * 调用get_line函数，通过m_start_line将从状态机读取数据间接赋给text
+  * 主状态机解析text
+```C++
+//m_start_line是行在buffer中的起始位置，将该位置后面的数据赋给text
+//此时从状态机已提前将一行的末尾字符\r\n变为\0\0，所以text可以直接取出完整的行进行解析
+char* get_line(){
+    return m_read_buf+m_start_line;
+}
+
+http_conn::HTTP_CODE http_conn::process_read()
+{
+    //初始化从状态机状态、HTTP请求解析结果
+    LINE_STATUS line_status=LINE_OK;
+    HTTP_CODE ret=NO_REQUEST;
+    char* text=0;
+
+    //这里为什么要写两个判断条件？第一个判断条件为什么这样写？
+    //具体的在主状态机逻辑中会讲解。
+
+    //parse_line为从状态机的具体实现
+    while((m_check_state==CHECK_STATE_CONTENT && line_status==LINE_OK)||((line_status=parse_line())==LINE_OK))
+    {
+        text=get_line();
+
+        //m_start_line是每一个数据行在m_read_buf中的起始位置
+        //m_checked_idx表示从状态机在m_read_buf中读取的位置
+        m_start_line=m_checked_idx;
+
+        //主状态机的三种状态转移逻辑
+        switch(m_check_state)
+        {
+            case CHECK_STATE_REQUESTLINE:
+            {
+                //解析请求行
+                ret=parse_request_line(text);
+                if(ret==BAD_REQUEST)
+                    return BAD_REQUEST;
+                break;
+            }
+            case CHECK_STATE_HEADER:
+            {
+                //解析请求头
+                ret=parse_headers(text);
+                if(ret==BAD_REQUEST)
+                    return BAD_REQUEST;
+
+                //完整解析GET请求后，跳转到报文响应函数
+                else if(ret==GET_REQUEST)
+                {
+                    return do_request();
+                }
+                break;
+            }
+            case CHECK_STATE_CONTENT:
+            {
+                //解析消息体
+                ret=parse_content(text);
+
+                //完整解析POST请求后，跳转到报文响应函数
+                if(ret==GET_REQUEST)
+                    return do_request();
+
+                //解析完消息体即完成报文解析，避免再次进入循环，更新line_status
+                line_status=LINE_OPEN;
+                break;
+            }
+            default:
+            return INTERNAL_ERROR;
+        }
+    }
+    return NO_REQUEST;
+}
+```
+### 从状态机逻辑
+ 上一篇的基础知识讲解中，对于HTTP报文的讲解遗漏了一点细节，在这里作为补充。
+ 
+ 在HTTP报文中，每一行的数据由\r\n作为结束字符，空行则是仅仅是字符\r\n。因此，可以通过查找\r\n将报文拆解成单独的行进行解析，项目中便是利用了这一点。
+
+ 从状态机负责读取buffer中的数据，将每行数据末尾的\r\n置为\0\0，并更新从状态机在buffer中读取的位置m_checked_idx，以此来驱动主状态机解析。
+* 从状态机从m_read_buf中逐字节读取，判断当前字节是否为\r
+  * 接下来的字符是\n，将\r\n修改成\0\0，将m_checked_idx指向下一行的开头，则返回LINE_OK
+  * 接下来达到了buffer末尾，表示buffer还需要继续接收，返回LINE_OPEN
+  * 否则，表示语法错误，返回LINE_BAD
+
+* 当前字节不是\r，判断是否是\n（一般是上次读取到\r就到了buffer末尾，没有接收完整，再次接收时会出现这种情况）
+  * 如果前一个字符是\r，则将\r\n修改成\0\0，将m_checked_idx指向下一行的开头，则返回LINE_OK
+* 当前字节既不是\r，也不是\n
+  * 表示接收不完整，需要继续接收，返回LINE_OPEN
+```C++
+//从状态机，用于分析出一行内容
+//返回值为行的读取状态，有LINE_OK,LINE_BAD,LINE_OPEN
+
+//m_read_idx指向缓冲区m_read_buf的数据末尾的下一个字节
+//m_checked_idx指向从状态机当前正在分析的字节
+http_conn::LINE_STATUS http_conn::parse_line()
+{
+    char temp;
+    for(;m_checked_idx<m_read_idx;++m_checked_idx)
+    {
+        //temp为将要分析的字节
+        temp=m_read_buf[m_checked_idx];
+
+        //如果当前是\r字符，则有可能会读取到完整行
+        if(temp=='\r'){
+
+            //下一个字符达到了buffer结尾，则接收不完整，需要继续接收
+            if((m_checked_idx+1)==m_read_idx)
+                return LINE_OPEN;
+            //下一个字符是\n，将\r\n改为\0\0
+            else if(m_read_buf[m_checked_idx+1]=='\n'){
+                m_read_buf[m_checked_idx++]='\0';
+                m_read_buf[m_checked_idx++]='\0';
+                return LINE_OK;
+            }
+            //如果都不符合，则返回语法错误
+            return LINE_BAD;
+        }
+
+        //如果当前字符是\n，也有可能读取到完整行
+        //一般是上次读取到\r就到buffer末尾了，没有接收完整，再次接收时会出现这种情况
+        else if(temp=='\n')
+        {
+            //前一个字符是\r，则接收完整
+            if(m_checked_idx>1&&m_read_buf[m_checked_idx-1]=='\r')
+            {
+                m_read_buf[m_checked_idx-1]='\0';
+                m_read_buf[m_checked_idx++]='\0';
+                return LINE_OK;
+            }
+            return LINE_BAD;
+        }
+    }
+
+    //并没有找到\r\n，需要继续接收
+    return LINE_OPEN;
+}
+```
+### 主状态机逻辑
+主状态机初始状态是CHECK_STATE_REQUESTLINE，通过调用从状态机来驱动主状态机，在主状态机进行解析前，从状态机已经将每一行的末尾\r\n符号改为\0\0，以便于主状态机直接取出对应字符串进行处理。
+
+* CHECK_STATE_REQUESTLINE
+  * 主状态机的初始状态，调用parse_request_line函数解析请求行
+  * 解析函数从m_read_buf中解析HTTP请求行，获得请求方法、目标URL及HTTP版本号
+  * 解析完成后主状态机的状态变为CHECK_STATE_HEADER
