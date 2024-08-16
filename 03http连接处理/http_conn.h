@@ -1,26 +1,27 @@
 #ifndef HTTPCONNECTION_H
 #define HTTPCONNECTION_H
-#include <unistd.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/epoll.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <assert.h>
-#include <sys/stat.h>
-#include <string.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <stdarg.h>
-#include <errno.h>
-#include <sys/wait.h>
-#include <sys/uio.h>
-#include "../lock/locker.h"
-#include "../CGImysql/sql_connection_pool.h"
+#include <unistd.h>             // 提供POSIX操作系统API，如文件操作、进程控制等
+#include <signal.h>             // 信号处理，如中断、终止等
+#include <sys/types.h>          // 定义数据类型，如pid_t、size_t等
+#include <sys/epoll.h>          // 提供epoll相关函数，用于高效的I/O事件通知机制
+#include <fcntl.h>              // 文件控制函数，如open、fcntl等
+#include <sys/socket.h>         // 创建和操作套接字的函数
+#include <netinet/in.h>         // 包含用于Internet地址族的结构和宏
+#include <arpa/inet.h>          // 提供Internet操作函数，如IP地址转换
+#include <assert.h>             // 提供assert宏，用于调试
+#include <sys/stat.h>           // 文件状态操作，如获取文件信息
+#include <string.h>             // 字符串操作函数
+#include <pthread.h>            // 提供POSIX线程的创建和管理函数
+#include <stdio.h>              // 输入输出函数，如printf、scanf
+#include <stdlib.h>             // 常用库函数，如内存分配、进程控制等
+#include <sys/mman.h>           // 内存映射相关函数，如mmap、munmap
+#include <stdarg.h>             // 处理变参函数的宏，如va_start、va_arg
+#include <errno.h>              // 提供系统错误代码
+#include <sys/wait.h>           // 等待进程终止的函数，如wait、waitpid
+#include <sys/uio.h>            // readv和writev函数，用于在单个操作中读取或写入多个非连续缓冲区
+#include "../lock/locker.h"     // 引入自定义锁机制模块，包含互斥锁或条件变量的实现
+#include "../CGImysql/sql_connection_pool.h" // 引入MySQL连接池模块，包含数据库连接管理功能
+
 class http_conn
 {
 public:
