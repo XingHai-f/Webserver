@@ -6,5 +6,9 @@ Linux下的C++的轻量级Web服务器学习
 * 实现同步/异步日志系统，记录服务器运行状态
 * 经Webbench压力测试可以实现上万的并发连接数据交换
 
+## 01线程同步机制封装类
+定义了一组用于线程同步的工具类，使用了POSIX线程（pthread）和信号量（semaphore）。程序中包含三个类：sem、locker 和 cond，分别用于处理信号量、互斥锁和条件变量。这些类一起提供了一个基本的多线程同步机制，可以用于编写安全、可靠的多线程程序。
+
+
 # 来源
 [TinyWebServer](https://github.com/qinguoyi/TinyWebServer.git)
