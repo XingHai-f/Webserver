@@ -19,8 +19,7 @@
 ```C++
   int sem_init(sem_t *sem, int pshared, unsigned int value);
 ```
-* sem_init函数：初始化一个匿名的信号量
-* sem：指定了要初始化的信号量的地址；pshared：0表示多线程，非0表示多进程；value：指定了信号量的初始值
+sem_init函数：初始化一个匿名的信号量。``sem``：指定了要初始化的信号量的地址；``pshared``：0表示多线程，非0表示多进程；``value``：指定了信号量的初始值
 ```C++
   int sem_destroy(sem_t *sem);
 ```
