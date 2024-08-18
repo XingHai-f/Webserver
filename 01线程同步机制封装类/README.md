@@ -32,6 +32,7 @@
   int sem_post(sem_t *sem);
 ```
 * sem_post函数：用于将信号量的值增加1。如果有任何线程因为信号量值为0，而阻塞在sem_wait或sem_trywait调用上，sem_post会唤醒其中的一个线程，使其继续执行。``sem``: 指向需要发布的信号量对象的指针。
+
 以上，成功返回0，失败返回errno.
 
 # 互斥锁 
@@ -53,6 +54,7 @@
   int pthread_mutex_unlock(pthread_mutex_t *mutex);
 ```
 * pthread_mutex_unlock函数：用于解锁一个互斥锁（mutex）。当一个线程持有互斥锁并完成临界区中的操作后，需要调用这个函数释放锁，以便其他线程可以获得锁并进入临界区。``mutex``: 指向需要解锁的互斥锁对象的指针。
+
 以上，成功返回0，失败返回errno
 
 # 条件变量
